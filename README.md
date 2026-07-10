@@ -1,6 +1,6 @@
-# ShaderDemo
+# ShadDem
 
-**ShaderDemo** is a real-time GLSL shader visualizer for Windows, built with **.NET 8** and **Silk.NET** (OpenGL + windowing) with an **ImGui.NET**-based control panel. It renders a library of fragment shaders with a full post-processing effect stack, audio-reactive modulation, a timeline/automation system, 3D model overlay, particle system, live shader coding, and MP4/GIF video export via `ffmpeg`.
+**ShadDem** is a real-time GLSL shader visualizer for Windows, built with **.NET 8** and **Silk.NET** (OpenGL + windowing) with an **ImGui.NET**-based control panel. It renders a library of fragment shaders with a full post-processing effect stack, audio-reactive modulation, a timeline/automation system, 3D model overlay, particle system, live shader coding, and MP4/GIF video export via `ffmpeg`.
 
 This project is a from-scratch **C# port** of an original Python/Pygame/ModernGL shader demo, rebuilt end-to-end on the .NET/Silk.NET stack.
 
