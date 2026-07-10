@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>ShaderDemo.Core</RootNamespace>
+    <AssemblyName>ShaderDemo.Core</AssemblyName>
+    <Copyright>Copyright (c) 2026 Patrick JAILLET</Copyright>
+    <Product>ShaderDemo</Product>
+    <Company>Patrick JAILLET</Company>
+    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    <NeutralLanguage>en</NeutralLanguage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.9" />
+    <PackageReference Include="NAudio.Vorbis" Version="1.5.0" />
+    <PackageReference Include="Silk.NET.OpenGL" Version="2.21.0" />
+    <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.21.0" />
+    <PackageReference Include="Silk.NET.Windowing" Version="2.21.0" />
+    <PackageReference Include="Silk.NET.Input" Version="2.21.0" />
+    <PackageReference Include="Silk.NET.GLFW" Version="2.21.0" />
+    <PackageReference Include="StbImageSharp" Version="2.30.15" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="ImGui.NET" Version="1.89.9.3" />
+    <PackageReference Include="StbImageWriteSharp" Version="1.16.7" />
+    <PackageReference Include="System.Drawing.Common" Version="10.0.9" />
+  </ItemGroup>
+
+</Project>
