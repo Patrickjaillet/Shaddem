@@ -54,9 +54,8 @@ public static class AudioPanel
                 manager.Audio.Enabled = settings.AudioReactive;
                 manager.Player.Play(settings.MusicFile, settings.MusicVolume);
 
-                var fullAnalysis = AudioAnalyzer.AnalyzeFull(settings.MusicFile);
-                manager.AudioViz.SetAnalysis(fullAnalysis, manager.ElapsedTime);
-                ToastManager.Show($"Playing: {Path.GetFileName(settings.MusicFile)}", ToastLevel.Success);
+                manager.AsyncAudio.RequestAnalysis(settings.MusicFile);
+                ToastManager.Show($"Playing: {Path.GetFileName(settings.MusicFile)} (analyzing...)", ToastLevel.Success);
             }
             else
             {

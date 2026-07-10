@@ -103,28 +103,31 @@ public sealed class TimelineEngine
         return Tracks.FirstOrDefault(t => t.Types.Contains(type));
     }
 
-    public IEnumerable<TimelineClip> GetFilteredActiveClips(double time)
+    public List<TimelineClip> GetFilteredActiveClips(double time)
     {
         bool soloActive = Tracks.Any(t => t.Solo);
+        var result = new List<TimelineClip>();
 
         foreach (TimelineClip clip in GetActiveClips(time))
         {
             Track? track = FindTrackFor(clip.Type);
             if (track == null)
             {
-                if (!soloActive) yield return clip;
+                if (!soloActive) result.Add(clip);
                 continue;
             }
 
             if (soloActive)
             {
-                if (track.Solo) yield return clip;
+                if (track.Solo) result.Add(clip);
             }
             else if (!track.Mute)
             {
-                yield return clip;
+                result.Add(clip);
             }
         }
+
+        return result;
     }
 
     private static double ApplyEasing(double t, string? easing)
@@ -189,17 +192,32 @@ public sealed class TimelineEngine
         return string.Concat(parts.Select(p => char.ToUpperInvariant(p[0]) + p[1..]));
     }
 
+    private static readonly Dictionary<string, FieldInfo?> _effectFieldCache = new();
+
+    private static FieldInfo? GetEffectField(string resource)
+    {
+        if (_effectFieldCache.TryGetValue(resource, out FieldInfo? field)) return field;
+        field = typeof(EffectParams).GetField(ToPascalCase(resource));
+        _effectFieldCache[resource] = field;
+        return field;
+    }
+
     public void ApplyEffects(EffectParams effects, double currentTime)
+    {
+        ApplyEffects(effects, currentTime, GetFilteredActiveClips(currentTime));
+    }
+
+    private void ApplyEffects(EffectParams effects, double currentTime, List<TimelineClip> activeClips)
     {
         effects.Speed = 1.0f;
         effects.Intensity = 1.0f;
         effects.Color = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
 
-        foreach (TimelineClip clip in GetFilteredActiveClips(currentTime))
+        foreach (TimelineClip clip in activeClips)
         {
             if (clip.Type != ClipType.Effect) continue;
 
-            FieldInfo? field = typeof(EffectParams).GetField(ToPascalCase(clip.Resource));
+            FieldInfo? field = GetEffectField(clip.Resource);
             if (field == null) continue;
 
             if (field.FieldType == typeof(float))
@@ -233,7 +251,12 @@ public sealed class TimelineEngine
 
     public void ApplyShader(ShaderManager manager, double currentTime)
     {
-        TimelineClip? shaderClip = GetFilteredActiveClips(currentTime).LastOrDefault(c => c.Type == ClipType.Shader);
+        ApplyShader(manager, currentTime, GetFilteredActiveClips(currentTime));
+    }
+
+    private void ApplyShader(ShaderManager manager, double currentTime, List<TimelineClip> activeClips)
+    {
+        TimelineClip? shaderClip = activeClips.LastOrDefault(c => c.Type == ClipType.Shader);
         if (shaderClip == null) return;
 
         int index = manager.ShaderNames.ToList().IndexOf(shaderClip.Resource);
@@ -242,7 +265,12 @@ public sealed class TimelineEngine
 
     public void ApplyImageLayers(ShaderManager manager, double currentTime)
     {
-        var activeImageClips = GetFilteredActiveClips(currentTime).Where(c => c.Type == ClipType.Image).ToList();
+        ApplyImageLayers(manager, currentTime, GetFilteredActiveClips(currentTime));
+    }
+
+    private void ApplyImageLayers(ShaderManager manager, double currentTime, List<TimelineClip> activeClips)
+    {
+        var activeImageClips = activeClips.Where(c => c.Type == ClipType.Image).ToList();
         var activeSet = new HashSet<TimelineClip>(activeImageClips);
 
         foreach (TimelineClip stale in _imageClipLayers.Keys.Where(c => !activeSet.Contains(c)).ToList())
@@ -290,7 +318,12 @@ public sealed class TimelineEngine
 
     public void ApplyModelLayers(ShaderManager manager, double currentTime)
     {
-        var activeClips = GetFilteredActiveClips(currentTime).Where(c => c.Type == ClipType.Model3D).ToList();
+        ApplyModelLayers(manager, currentTime, GetFilteredActiveClips(currentTime));
+    }
+
+    private void ApplyModelLayers(ShaderManager manager, double currentTime, List<TimelineClip> allActiveClips)
+    {
+        var activeClips = allActiveClips.Where(c => c.Type == ClipType.Model3D).ToList();
         var activeSet = new HashSet<TimelineClip>(activeClips);
 
         foreach (TimelineClip stale in _modelClipLayers.Keys.Where(c => !activeSet.Contains(c)).ToList())
@@ -350,7 +383,12 @@ public sealed class TimelineEngine
 
     public void ApplyMusicClip(ShaderManager manager, double currentTime)
     {
-        TimelineClip? musicClip = GetFilteredActiveClips(currentTime).LastOrDefault(c => c.Type == ClipType.Music);
+        ApplyMusicClip(manager, currentTime, GetFilteredActiveClips(currentTime));
+    }
+
+    private void ApplyMusicClip(ShaderManager manager, double currentTime, List<TimelineClip> activeClips)
+    {
+        TimelineClip? musicClip = activeClips.LastOrDefault(c => c.Type == ClipType.Music);
 
         if (musicClip == null)
         {
@@ -379,7 +417,12 @@ public sealed class TimelineEngine
 
     public void ApplyLayerAutomation(ShaderManager manager, double currentTime)
     {
-        foreach (TimelineClip clip in GetFilteredActiveClips(currentTime))
+        ApplyLayerAutomation(manager, currentTime, GetFilteredActiveClips(currentTime));
+    }
+
+    private void ApplyLayerAutomation(ShaderManager manager, double currentTime, List<TimelineClip> activeClips)
+    {
+        foreach (TimelineClip clip in activeClips)
         {
             if (clip.Type != ClipType.LayerAutomation) continue;
 
@@ -396,5 +439,17 @@ public sealed class TimelineEngine
                 target.Opacity = (float)Math.Clamp(v, 0.0, 1.0);
             }
         }
+    }
+
+    public void ApplyAll(ShaderManager manager, EffectParams effects, double currentTime)
+    {
+        List<TimelineClip> activeClips = GetFilteredActiveClips(currentTime);
+
+        ApplyEffects(effects, currentTime, activeClips);
+        ApplyShader(manager, currentTime, activeClips);
+        ApplyImageLayers(manager, currentTime, activeClips);
+        ApplyModelLayers(manager, currentTime, activeClips);
+        ApplyMusicClip(manager, currentTime, activeClips);
+        ApplyLayerAutomation(manager, currentTime, activeClips);
     }
 }

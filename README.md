@@ -4,7 +4,7 @@
 
 This project is a from-scratch **C# port** of an original Python/Pygame/ModernGL shader demo, rebuilt end-to-end on the .NET/Silk.NET stack.
 
-> Status: early / actively developed (`v0.1.0`). See [`roadmap.md`](roadmap.md) for the detailed, living feature checklist and porting decisions, and [`roadmap-ux.md`](roadmap-ux.md) for the interface/performance/workflow roadmap.
+> Status: `v1.0.0`. See [`roadmap.md`](roadmap.md) for the detailed, living feature checklist and porting decisions, and [`roadmap-ux.md`](roadmap-ux.md) for the interface/performance/workflow roadmap.
 
 ## Screenshot
 

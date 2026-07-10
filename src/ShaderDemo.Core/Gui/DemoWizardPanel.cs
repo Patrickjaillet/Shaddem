@@ -118,9 +118,8 @@ public static class DemoWizardPanel
                 settings.AudioReactive = true;
                 manager.Audio.Enabled = true;
                 manager.Player.Play(settings.MusicFile, settings.MusicVolume);
-                var fullAnalysis = ShaderDemo.Core.Audio.AudioAnalyzer.AnalyzeFull(settings.MusicFile);
-                manager.AudioViz.SetAnalysis(fullAnalysis, manager.ElapsedTime);
-                ToastManager.Show($"Playing: {Path.GetFileName(settings.MusicFile)}", ToastLevel.Success);
+                manager.AsyncAudio.RequestAnalysis(settings.MusicFile);
+                ToastManager.Show($"Playing: {Path.GetFileName(settings.MusicFile)} (analyzing...)", ToastLevel.Success);
             }
             else
             {

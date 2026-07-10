@@ -66,7 +66,7 @@ float map(vec3 p, float T, out vec4 info) {
 }
 
 vec3 render(vec2 uv, float T) {
-    vec4 cp = vec4(160.0, 0.001, 100.0, 1.2);
+    vec4 cp = vec4(max(40.0, floor(160.0 * customQualityScale)), 0.001, 100.0, 1.2);
     vec3 ro = getPath(T * 8.0), ta = getPath(T * 8.0 + 1.0);
     vec3 fwd = normalize(ta - ro), rgt = normalize(cross(vec3(0, 1, 0), fwd)), up = cross(fwd, rgt);
     vec3 rd = normalize(uv.x * rgt + uv.y * up + fwd * (cp.w + sin(T * 0.4) * 0.2));

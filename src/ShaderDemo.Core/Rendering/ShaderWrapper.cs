@@ -69,6 +69,7 @@ public static class ShaderWrapper
         uniform float customScale;
         uniform float customShaderParam1;
         uniform float customAudioKick;
+        uniform float customQualityScale;
         uniform sampler2D iChannel0;
         uniform sampler2D iChannel1;
         uniform sampler2D iChannel2;

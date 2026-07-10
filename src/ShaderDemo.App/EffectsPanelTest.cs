@@ -46,7 +46,7 @@ public static class EffectsPanelTest
                     Console.WriteLine($"[effects-panel-test] Requested panel: {target}");
                 }
 
-                EffectsPanel.Draw(engine, settings, "test_settings.json", "test_layers.json", timeline, "test_timeline.json", "test_presets.json", previewWindow, shaderDirectory, window.DockspaceId);
+                EffectsPanel.Draw(engine, settings, "test_settings.json", "test_layers.json", timeline, "test_timeline.json", "test_presets.json", previewWindow, shaderDirectory, window.DockspaceId, window);
 
                 if (frame == 25)
                 {
@@ -54,7 +54,7 @@ public static class EffectsPanelTest
                     Console.WriteLine($"[effects-panel-test] HUD toggled on: {PerformanceHud.Visible}");
                 }
 
-                PerformanceHud.Draw(engine);
+                PerformanceHud.Draw(engine, settings);
 
                 if (frame == 30)
                 {

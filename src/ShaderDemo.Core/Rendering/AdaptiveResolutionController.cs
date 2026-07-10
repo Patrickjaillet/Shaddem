@@ -3,7 +3,9 @@ namespace ShaderDemo.Core.Rendering;
 
 public sealed class AdaptiveResolutionController
 {
-    private const float MinScale = 0.5f;
+    public const float DefaultMinScale = 0.5f;
+    public const float LowTierMinScale = 0.35f;
+
     private const float MaxScale = 1.0f;
     private const float StepDown = 0.1f;
     private const float StepUp = 0.05f;
@@ -13,6 +15,7 @@ public sealed class AdaptiveResolutionController
     private double _smoothedFrameTimeMs = -1.0;
 
     public bool Enabled { get; set; }
+    public float MinScale { get; set; } = DefaultMinScale;
 
     public float CurrentScale { get; private set; } = MaxScale;
 

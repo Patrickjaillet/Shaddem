@@ -4,8 +4,8 @@
 // Tags: fbm
 
 #define PI 3.14159265359
-#define STEPS 20
 #define SHADOW_STEPS 4
+int STEPS = int(max(8.0, floor(20.0 * customQualityScale)));
 
 mat2 rot(float a)
 {

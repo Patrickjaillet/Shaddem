@@ -39,7 +39,7 @@ public static class GuiPanelsTest
                 ImGui.Text($"Icons: {ShaderDemo.Core.Gui.Theme.Icons.Stop} {ShaderDemo.Core.Gui.Theme.Icons.Record} {ShaderDemo.Core.Gui.Theme.Icons.Up} {ShaderDemo.Core.Gui.Theme.Icons.Down} {ShaderDemo.Core.Gui.Theme.Icons.Close} {ShaderDemo.Core.Gui.Theme.Icons.Bullet}");
 
                 GeneralPanel.Draw(engine, settings, timeline);
-                SystemPanel.Draw(engine, settings, timeline, "test_settings.json", "test_layers.json", "test_timeline.json");
+                SystemPanel.Draw(engine, settings, timeline, "test_settings.json", "test_layers.json", "test_timeline.json", window);
                 WindowPanel.Draw(new SecondaryWindow(window.NativeWindow), engine);
 
                 if (frame == 5)

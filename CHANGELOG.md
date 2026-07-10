@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-07-10
+
+### Added
+
+- Image, text, and 3D-model layers as first-class, reorderable/blendable entries in the layer stack (the "megademo" compositing feature), alongside shader layers — with fit-mode/position/scale/rotation controls and a dedicated `LayersPanel` editor for each.
+- Timeline-driven sequencing for Image, Model3D, and Music clips (previously legal to place on a track but silently inert during playback), with fade in/out and, for Music, seek-accurate playback start.
+- Per-layer keyframing: a `LayerAutomation` timeline clip animates a named layer's opacity/enabled state, reusing the existing effect-parameter interpolation/easing system.
+- A built-in "Image Layer Showcase" demo template proving image-layer compositing end-to-end through the template system.
+- Texture memory budget: image layers loaded as layers are downscaled on load to a configurable maximum dimension (default 2048px) to bound VRAM use, with a live control in `LayersPanel`.
+- Multi-layer performance benchmark harness measuring real CPU/GPU frame cost and VRAM as simultaneous layer count scales.
+
 ## [0.1.0] - 2026
 
 ### Added
@@ -25,4 +36,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Local settings/layers/timeline/presets persistence to JSON next to the executable.
 - `build.ps1` self-contained `win-x64` publish script.
 
-[0.1.0]: https://github.com/<your-username>/ShaderDemo/releases/tag/v0.1.0
+[1.0.0]: https://github.com/Patrickjaillet/Shaddem/releases/tag/v1.0.0
+[0.1.0]: https://github.com/Patrickjaillet/Shaddem/releases/tag/v0.1.0

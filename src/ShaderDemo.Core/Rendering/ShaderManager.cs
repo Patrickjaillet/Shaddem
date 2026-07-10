@@ -34,6 +34,7 @@ public sealed class ShaderManager : IDisposable
 
     public static bool UseShaderBinaryCache { get; set; }
     public AudioPlayer Player { get; } = new();
+    public AsyncAudioAnalyzer AsyncAudio { get; } = new();
     public VideoRecorder Recorder { get; } = new();
     public Framebuffer? LastComposedFrame { get; private set; }
 
@@ -272,18 +273,18 @@ public sealed class ShaderManager : IDisposable
             if (progress >= 1.0f)
             {
                 IsTransitioning = false;
-                Pipeline.RenderShaderPass(active, Effects, ElapsedTime, MousePosition, Audio.Compute(Effects, ElapsedTime), Channel0Texture, Pipeline.SceneFbo);
+                Pipeline.RenderShaderPass(active, Effects, ElapsedTime, MousePosition, Audio.Compute(Effects, ElapsedTime), Channel0Texture, Pipeline.SceneFbo, AdaptiveResolution.CurrentScale);
                 return Pipeline.SceneFbo;
             }
 
             ShaderProgram? prev = _shaderNames.Count > _prevShaderIndex ? _shaderPrograms[_shaderNames[_prevShaderIndex]] : null;
-            Pipeline.RenderShaderPass(prev, Effects, ElapsedTime, MousePosition, Audio.Compute(Effects, ElapsedTime), Channel0Texture, Pipeline.SceneFbo);
-            Pipeline.RenderShaderPass(active, Effects, ElapsedTime, MousePosition, Audio.Compute(Effects, ElapsedTime), Channel0Texture, Pipeline.LayerFbo);
+            Pipeline.RenderShaderPass(prev, Effects, ElapsedTime, MousePosition, Audio.Compute(Effects, ElapsedTime), Channel0Texture, Pipeline.SceneFbo, AdaptiveResolution.CurrentScale);
+            Pipeline.RenderShaderPass(active, Effects, ElapsedTime, MousePosition, Audio.Compute(Effects, ElapsedTime), Channel0Texture, Pipeline.LayerFbo, AdaptiveResolution.CurrentScale);
             PostEffects.RenderTransition(Pipeline.SceneFbo, Pipeline.LayerFbo, progress, TransitionType, Pipeline.ComposeA);
             return Pipeline.ComposeA;
         }
 
-        Pipeline.RenderShaderPass(active, Effects, ElapsedTime, MousePosition, Audio.Compute(Effects, ElapsedTime), Channel0Texture, Pipeline.SceneFbo);
+        Pipeline.RenderShaderPass(active, Effects, ElapsedTime, MousePosition, Audio.Compute(Effects, ElapsedTime), Channel0Texture, Pipeline.SceneFbo, AdaptiveResolution.CurrentScale);
         return Pipeline.SceneFbo;
     }
 
@@ -308,7 +309,7 @@ public sealed class ShaderManager : IDisposable
             else if (layer.SourceType == LayerSourceType.Shader)
             {
                 if (!_shaderPrograms.TryGetValue(layer.ShaderName, out var layerProgram)) continue;
-                Pipeline.RenderShaderPass(layerProgram, Effects, ElapsedTime, MousePosition, Audio.Compute(Effects, ElapsedTime), Channel0Texture, Pipeline.LayerFbo);
+                Pipeline.RenderShaderPass(layerProgram, Effects, ElapsedTime, MousePosition, Audio.Compute(Effects, ElapsedTime), Channel0Texture, Pipeline.LayerFbo, AdaptiveResolution.CurrentScale);
             }
             else if (layer.SourceType == LayerSourceType.Text)
             {

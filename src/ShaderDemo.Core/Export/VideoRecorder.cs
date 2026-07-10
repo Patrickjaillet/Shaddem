@@ -1,4 +1,5 @@
 // Copyright (c) 2026 Patrick JAILLET
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 
@@ -6,7 +7,13 @@ namespace ShaderDemo.Core.Export;
 
 public sealed class VideoRecorder
 {
+    private const int MaxQueuedFrames = 8;
+
     private Process? _process;
+    private BlockingCollection<byte[]>? _writeQueue;
+    private Thread? _writerThread;
+    private Action<string>? _writeLog;
+    private volatile bool _pipeBroken;
 
     public bool IsRecording => _process is { HasExited: false };
     public string? OutputFile { get; private set; }
@@ -15,6 +22,7 @@ public sealed class VideoRecorder
 
     public double EncodedSeconds { get; private set; }
     public long EncodedFrames { get; private set; }
+    public int QueuedFrames => _writeQueue?.Count ?? 0;
 
     public bool Start(
         int width,
@@ -58,6 +66,12 @@ public sealed class VideoRecorder
             _process.BeginOutputReadLine();
 
             OutputFile = filename;
+            _pipeBroken = false;
+            _writeLog = log;
+            _writeQueue = new BlockingCollection<byte[]>(MaxQueuedFrames);
+            _writerThread = new Thread(RunWriterLoop) { IsBackground = true, Name = "VideoRecorderWriter" };
+            _writerThread.Start();
+
             log?.Invoke($"Recording started: {filename}");
             return true;
         }
@@ -91,25 +105,61 @@ public sealed class VideoRecorder
 
     public bool WriteFrame(byte[] rgbData, Action<string>? log = null)
     {
-        if (_process == null) return false;
+        if (_process == null || _writeQueue == null) return false;
+
+        if (_pipeBroken)
+        {
+            Stop();
+            return false;
+        }
 
         try
         {
-            _process.StandardInput.BaseStream.Write(rgbData, 0, rgbData.Length);
-            _process.StandardInput.BaseStream.Flush();
+            _writeQueue.Add(rgbData);
             return true;
         }
-        catch (IOException ex)
+        catch (InvalidOperationException)
         {
-            log?.Invoke($"FFmpeg pipe broken, stopping recording: {ex.Message}");
-            Stop();
             return false;
+        }
+    }
+
+    private void RunWriterLoop()
+    {
+        if (_process == null || _writeQueue == null) return;
+
+        try
+        {
+            foreach (byte[] frame in _writeQueue.GetConsumingEnumerable())
+            {
+                if (_pipeBroken) continue;
+
+                try
+                {
+                    _process.StandardInput.BaseStream.Write(frame, 0, frame.Length);
+                    _process.StandardInput.BaseStream.Flush();
+                }
+                catch (IOException ex)
+                {
+                    _pipeBroken = true;
+                    _writeLog?.Invoke($"FFmpeg pipe broken, stopping recording: {ex.Message}");
+                }
+            }
+        }
+        catch (ObjectDisposedException)
+        {
         }
     }
 
     public void Stop()
     {
         if (_process == null) return;
+
+        _writeQueue?.CompleteAdding();
+        _writerThread?.Join();
+        _writeQueue?.Dispose();
+        _writeQueue = null;
+        _writerThread = null;
 
         try
         {

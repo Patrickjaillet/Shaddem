@@ -68,7 +68,7 @@ public static class EffectsPanel
         if (advancedOnlyTarget) _simpleMode = false;
     }
 
-    public static void Draw(ShaderManager manager, AppSettings settings, string settingsFilePath, string layersFilePath, TimelineEngine timeline, string timelineFilePath, string presetsFilePath, SecondaryWindow preview, string shaderDirectory, uint dockspaceId)
+    public static void Draw(ShaderManager manager, AppSettings settings, string settingsFilePath, string layersFilePath, TimelineEngine timeline, string timelineFilePath, string presetsFilePath, SecondaryWindow preview, string shaderDirectory, uint dockspaceId, GlWindow window)
     {
         if (ImGui.GetIO().KeyCtrl && ImGui.IsKeyPressed(ImGuiKey.K))
         {
@@ -90,7 +90,7 @@ public static class EffectsPanel
 
         DrawNavigation(manager, settings, settingsFilePath, dockspaceId);
         DrawPreview(manager);
-        DrawInspector(manager, settings, settingsFilePath, layersFilePath, timeline, timelineFilePath, presetsFilePath, preview, shaderDirectory);
+        DrawInspector(manager, settings, settingsFilePath, layersFilePath, timeline, timelineFilePath, presetsFilePath, preview, shaderDirectory, window);
 
         if (_layoutPreset == NativeDockBuilder.LayoutPreset.PowerUser)
         {
@@ -276,7 +276,7 @@ public static class EffectsPanel
         Elevation.PopDockedBorder();
     }
 
-    private static void DrawInspector(ShaderManager manager, AppSettings settings, string settingsFilePath, string layersFilePath, TimelineEngine timeline, string timelineFilePath, string presetsFilePath, SecondaryWindow preview, string shaderDirectory)
+    private static void DrawInspector(ShaderManager manager, AppSettings settings, string settingsFilePath, string layersFilePath, TimelineEngine timeline, string timelineFilePath, string presetsFilePath, SecondaryWindow preview, string shaderDirectory, GlWindow window)
     {
         Elevation.PushDockedBorder();
         Elevation.SuppressDockMenuButton();
@@ -341,7 +341,7 @@ public static class EffectsPanel
                 break;
 
             case "Settings":
-                DrawSettingsTabs(manager, settings, layersFilePath, timeline, timelineFilePath, settingsFilePath, preview, shaderDirectory);
+                DrawSettingsTabs(manager, settings, layersFilePath, timeline, timelineFilePath, settingsFilePath, preview, shaderDirectory, window);
                 break;
         }
 
@@ -352,7 +352,7 @@ public static class EffectsPanel
 
     private static string _selectedSettingsTab = "System";
 
-    private static void DrawSettingsTabs(ShaderManager manager, AppSettings settings, string layersFilePath, TimelineEngine timeline, string timelineFilePath, string settingsFilePath, SecondaryWindow preview, string shaderDirectory)
+    private static void DrawSettingsTabs(ShaderManager manager, AppSettings settings, string layersFilePath, TimelineEngine timeline, string timelineFilePath, string settingsFilePath, SecondaryWindow preview, string shaderDirectory, GlWindow window)
     {
         if (_requestedSettingsTab != null)
         {
@@ -381,7 +381,7 @@ public static class EffectsPanel
         {
             case "System":
                 PanelDescriptions.Draw("System");
-                SystemPanel.Draw(manager, settings, timeline, settingsFilePath, layersFilePath, timelineFilePath);
+                SystemPanel.Draw(manager, settings, timeline, settingsFilePath, layersFilePath, timelineFilePath, window);
                 break;
             case "Media":
                 PanelDescriptions.Draw("Media");

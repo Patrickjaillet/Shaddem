@@ -188,10 +188,47 @@ if (args.Length > 1 && args[0] == "--test-texture-budget")
     Environment.Exit(0);
 }
 
+if (args.Length > 0 && args[0] == "--test-frame-pacing")
+{
+    ShaderDemo.App.FramePacingTest.Run();
+    Environment.Exit(0);
+}
+
+if (args.Length > 0 && args[0] == "--test-tier-defaults")
+{
+    ShaderDemo.App.TierDefaultsTest.Run();
+    Environment.Exit(0);
+}
+
+if (args.Length > 1 && args[0] == "--test-shader-quality-scale")
+{
+    ShaderDemo.App.ShaderQualityScaleTest.Run(Path.Combine(AppContext.BaseDirectory, "shaders"), args[1]);
+    Environment.Exit(0);
+}
+
+if (args.Length > 0 && args[0] == "--test-shader-lod-survey")
+{
+    ShaderDemo.App.ShaderLodSurveyTest.Run(Path.Combine(AppContext.BaseDirectory, "shaders"));
+    Environment.Exit(0);
+}
+
+if (args.Length > 0 && args[0] == "--test-posteffects-cost")
+{
+    float scale = args.Length > 1 && float.TryParse(args[1], out float parsedScale) ? parsedScale : 0.35f;
+    ShaderDemo.App.PostEffectsCostTest.Run(Path.Combine(AppContext.BaseDirectory, "shaders"), scale);
+    Environment.Exit(0);
+}
+
 if (args.Length > 0 && args[0] == "--benchmark")
 {
     double benchmarkDuration = args.Length > 1 && double.TryParse(args[1], out double parsedDuration) ? parsedDuration : 15.0;
     ShaderDemo.App.BenchmarkTest.Run(Path.Combine(AppContext.BaseDirectory, "shaders"), benchmarkDuration);
+    Environment.Exit(0);
+}
+
+if (args.Length > 0 && args[0] == "--test-gc-pressure")
+{
+    ShaderDemo.App.GCPressureTest.Run(Path.Combine(AppContext.BaseDirectory, "shaders"));
     Environment.Exit(0);
 }
 
@@ -222,7 +259,51 @@ bool coldStartLogged = false;
 bool shadersLoaded = false;
 int splashFrames = 0;
 
-using var window = new GlWindow(AppInfo.Name, appSettings.WindowWidth, appSettings.WindowHeight, fullscreen: false);
+bool tierDetectionDone = appSettings.QualityTier != QualityTier.Unknown;
+int tierBenchmarkShaderIndex = -1;
+bool tierProfilerWasEnabled = false;
+bool tierSamplingActive = false;
+int tierWarmupFrames = 0;
+int tierSampleFrames = 0;
+var tierGpuSamples = new List<double>();
+var tierCpuSamples = new List<double>();
+const int TierWarmupFrameCount = 25;
+const int TierSampleFrameCount = 20;
+
+using var window = new GlWindow(AppInfo.Name, appSettings.WindowWidth, appSettings.WindowHeight, fullscreen: false, vsync: appSettings.VSync);
+
+void FinishTierDetection(ShaderManager manager)
+{
+    manager.Profiler.Enabled = tierProfilerWasEnabled;
+    tierSamplingActive = false;
+    manager.SelectShader(0);
+
+    bool rendererSuggestsLowTier = QualityTierDetector.RendererStringSuggestsLowTier(window.GpuRenderer);
+
+    QualityTier tier;
+    string measurementSource;
+    if (tierGpuSamples.Count > 0)
+    {
+        double avgGpuMs = tierGpuSamples.Average();
+        tier = QualityTierDetector.ClassifyFromGpuBenchmark(avgGpuMs, rendererSuggestsLowTier);
+        measurementSource = $"GPU timer query, {avgGpuMs:F2} ms avg over {tierGpuSamples.Count} sample(s)";
+    }
+    else
+    {
+        double avgCpuMs = tierCpuSamples.Count > 0 ? tierCpuSamples.Average() : 0.0;
+        tier = QualityTierDetector.ClassifyFromCpuFallback(avgCpuMs, rendererSuggestsLowTier);
+        measurementSource = $"CPU wall-clock fallback (GPU timer query unavailable on this driver/GPU), {avgCpuMs:F2} ms avg over {tierCpuSamples.Count} sample(s)";
+    }
+
+    appSettings.QualityTier = tier;
+    appSettings.DetectedGpuName = window.GpuRenderer;
+    SettingsService.Save(appSettings, settingsFilePath);
+    QualityTierDetector.ApplyTierDefaults(manager, tier);
+
+    AppLog.Info($"Quality tier detected: {tier} (GPU: {window.GpuRenderer}, {measurementSource})");
+    tierDetectionDone = true;
+}
+
 ShaderManager? engine = null;
 var previewWindow = new SecondaryWindow(window.NativeWindow);
 using var shaderWatcher = new ShaderHotReloadWatcher(shaderDirectory);
@@ -246,9 +327,8 @@ void HandleDroppedFiles(string[] files)
             engine.Audio.Load(file, engine.ElapsedTime);
             engine.Audio.Enabled = appSettings.AudioReactive;
             engine.Player.Play(file, appSettings.MusicVolume);
-            var fullAnalysis = AudioAnalyzer.AnalyzeFull(file);
-            engine.AudioViz.SetAnalysis(fullAnalysis, engine.ElapsedTime);
-            ToastManager.Show($"Dropped audio: {Path.GetFileName(file)}", ToastLevel.Success);
+            engine.AsyncAudio.RequestAnalysis(file);
+            ToastManager.Show($"Dropped audio: {Path.GetFileName(file)}, analyzing...", ToastLevel.Success);
         }
         else if (Array.IndexOf(imageExtensions, ext) >= 0)
         {
@@ -292,6 +372,7 @@ window.Load += () =>
     engine.Effects.CopyFrom(appSettings.Effects);
     engine.Audio.Enabled = appSettings.AudioReactive;
     engine.Timeline = timeline;
+    QualityTierDetector.ApplyTierDefaults(engine, appSettings.QualityTier);
 
     dragDropHandler.Attach(window.NativeWindow);
 
@@ -354,6 +435,15 @@ window.UpdateFrame += deltaSeconds =>
     lastDeltaSeconds = deltaSeconds;
     engine?.Update(deltaSeconds);
 
+    if (engine != null)
+    {
+        engine.AsyncAudio.DrainCompleted((path, result) =>
+        {
+            engine.AudioViz.SetAnalysis(result, engine.ElapsedTime);
+            ToastManager.Show($"Audio analysis complete: {Path.GetFileName(path)}", ToastLevel.Success);
+        });
+    }
+
     if (window.Mouse != null && engine != null)
     {
         engine.MousePosition = new Vector2(window.Mouse.Position.X, window.Mouse.Position.Y);
@@ -361,12 +451,7 @@ window.UpdateFrame += deltaSeconds =>
 
     if (timeline.Active && engine != null)
     {
-        timeline.ApplyEffects(engine.Effects, engine.ElapsedTime);
-        timeline.ApplyShader(engine, engine.ElapsedTime);
-        timeline.ApplyImageLayers(engine, engine.ElapsedTime);
-        timeline.ApplyModelLayers(engine, engine.ElapsedTime);
-        timeline.ApplyMusicClip(engine, engine.ElapsedTime);
-        timeline.ApplyLayerAutomation(engine, engine.ElapsedTime);
+        timeline.ApplyAll(engine, engine.Effects, engine.ElapsedTime);
     }
 
     if (engine != null)
@@ -379,10 +464,21 @@ window.UpdateFrame += deltaSeconds =>
     }
 };
 
-window.RenderFrame += _ =>
+window.RenderFrame += deltaSeconds =>
 {
     if (engine != null) engine.PresentToScreenEnabled = !showGui;
     engine?.RenderFrame();
+
+    if (engine != null && tierSamplingActive)
+    {
+        tierCpuSamples.Add(deltaSeconds * 1000.0);
+
+        if (engine.Profiler.GetTimingsMilliseconds().TryGetValue("Scene", out double sceneMs) && sceneMs > 0.0)
+        {
+            tierGpuSamples.Add(sceneMs);
+        }
+    }
+
     if (previewWindow.IsOpen) previewWindow.RenderFrame(engine?.LastComposedFrame);
 
     if (!coldStartLogged)
@@ -411,9 +507,46 @@ window.ImGuiRender += () =>
         return;
     }
 
+    if (engine != null && !tierDetectionDone)
+    {
+        SplashScreen.Draw();
+
+        if (tierBenchmarkShaderIndex < 0 && tierWarmupFrames == 0 && tierSampleFrames == 0)
+        {
+            tierBenchmarkShaderIndex = engine.ShaderNames.ToList().IndexOf("Mandelbulb_I.glsl");
+            tierProfilerWasEnabled = engine.Profiler.Enabled;
+            engine.Profiler.Enabled = true;
+
+            if (tierBenchmarkShaderIndex >= 0)
+            {
+                engine.SelectShader(tierBenchmarkShaderIndex);
+            }
+        }
+
+        if (tierBenchmarkShaderIndex < 0)
+        {
+            FinishTierDetection(engine);
+        }
+        else if (tierWarmupFrames < TierWarmupFrameCount)
+        {
+            tierWarmupFrames++;
+        }
+        else if (tierSampleFrames < TierSampleFrameCount)
+        {
+            tierSamplingActive = true;
+            tierSampleFrames++;
+        }
+        else
+        {
+            FinishTierDetection(engine);
+        }
+
+        return;
+    }
+
     if (engine != null && showGui)
     {
-        EffectsPanel.Draw(engine, appSettings, settingsFilePath, layersFilePath, timeline, timelineFilePath, presetsFilePath, previewWindow, shaderDirectory, window.DockspaceId);
+        EffectsPanel.Draw(engine, appSettings, settingsFilePath, layersFilePath, timeline, timelineFilePath, presetsFilePath, previewWindow, shaderDirectory, window.DockspaceId, window);
     }
 
     ToastManager.Draw((float)lastDeltaSeconds);
@@ -421,7 +554,7 @@ window.ImGuiRender += () =>
     if (engine != null)
     {
         RecordingIndicator.Draw(engine);
-        PerformanceHud.Draw(engine);
+        PerformanceHud.Draw(engine, appSettings);
     }
 };
 

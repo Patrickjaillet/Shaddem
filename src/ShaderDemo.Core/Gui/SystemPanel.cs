@@ -13,7 +13,7 @@ public static class SystemPanel
     private static string _projectName = "default";
     private static string _projectStatus = "";
 
-    public static void Draw(ShaderManager manager, AppSettings settings, TimelineEngine timeline, string settingsFilePath, string layersFilePath, string timelineFilePath)
+    public static void Draw(ShaderManager manager, AppSettings settings, TimelineEngine timeline, string settingsFilePath, string layersFilePath, string timelineFilePath, GlWindow window)
     {
         Theme.Mono($"FPS: {ImGui.GetIO().Framerate:F1}  |  Time: {manager.ElapsedTime:F1}s");
 
@@ -122,6 +122,45 @@ public static class SystemPanel
         }
 
         ImGui.TextColored(Theme.TextMuted, "Caches compiled shader binaries to speed up repeat loads. GPU driver behavior on first use of this GL feature can vary by machine — off by default, opt in once you've confirmed it behaves well on your hardware.");
+
+        ImGui.Separator();
+        ImGui.Text("Performance Quality Tier");
+        string[] tierNames = Enum.GetNames<QualityTier>();
+        int tierIndex = (int)settings.QualityTier;
+        if (ImGui.Combo("Quality Tier", ref tierIndex, tierNames, tierNames.Length))
+        {
+            settings.QualityTier = (QualityTier)tierIndex;
+            SettingsService.Save(settings, settingsFilePath);
+            QualityTierDetector.ApplyTierDefaults(manager, settings.QualityTier);
+        }
+
+        string detectedGpuLabel = string.IsNullOrEmpty(settings.DetectedGpuName) ? "not yet detected" : settings.DetectedGpuName;
+        ImGui.TextColored(Theme.TextMuted, $"Detected automatically on first run from your GPU ({detectedGpuLabel}) and a short benchmark. Override here if detection got it wrong for your hardware.");
+
+        if (ImGui.Button("Re-detect on Next Launch"))
+        {
+            settings.QualityTier = QualityTier.Unknown;
+            SettingsService.Save(settings, settingsFilePath);
+            ToastManager.Show("Quality tier will be re-detected next time you launch ShaderDemo", ToastLevel.Info);
+        }
+
+        ImGui.Separator();
+        bool vsync = settings.VSync;
+        if (ImGui.Checkbox("VSync", ref vsync))
+        {
+            settings.VSync = vsync;
+            SettingsService.Save(settings, settingsFilePath);
+            window.SetVSync(vsync);
+        }
+
+        ImGui.TextColored(Theme.TextMuted, vsync
+            ? "Frame rate is capped to your display's refresh rate."
+            : "Frame rate is uncapped by VSync, but still capped to your display's refresh rate to avoid needlessly burning GPU/battery beyond what you can see.");
+
+        if (window.IsThrottled)
+        {
+            ImGui.TextColored(Theme.Warning, "Rendering throttled: window is unfocused or minimized.");
+        }
     }
 
     private static string ProjectDirectory(string name) => Path.Combine("projects", name);

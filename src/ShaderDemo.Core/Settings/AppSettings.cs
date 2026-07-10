@@ -18,4 +18,9 @@ public sealed class AppSettings
 
     public bool FirstRun { get; set; } = true;
     public bool TourCompleted { get; set; } = false;
+
+    public QualityTier QualityTier { get; set; } = QualityTier.Unknown;
+    public string DetectedGpuName { get; set; } = "";
+
+    public bool VSync { get; set; } = true;
 }

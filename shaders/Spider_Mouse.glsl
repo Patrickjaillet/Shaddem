@@ -6,10 +6,11 @@
 // https://github.com/Patrickjaillet/Z-GL-Shadertoy
 #define R iResolution.xy
 #define T iTime
-#define WEB_DENSITY 14.0
 #define SNAP_THRESHOLD 0.35
 #define ELASTIC_RECOIL 0.6
 #define LINE_WIDTH 0.004
+
+float WEB_DENSITY = max(6.0, floor(14.0 * customQualityScale));
 
 float hash12(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * .1031);

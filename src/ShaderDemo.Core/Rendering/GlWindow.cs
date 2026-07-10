@@ -1,5 +1,6 @@
 // Copyright (c) 2026 Patrick JAILLET
 using ImGuiNET;
+using ShaderDemo.Core.Logging;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.OpenGL.Extensions.ImGui;
@@ -10,19 +11,29 @@ namespace ShaderDemo.Core.Rendering;
 
 public sealed class GlWindow : IDisposable
 {
+    private const double ThrottledFramesPerSecond = 5.0;
+
     private readonly IWindow _window;
     private readonly bool _enableImGui;
     private IInputContext? _inputContext;
     private ImGuiController? _imGuiController;
+    private bool _isFocused = true;
+    private bool _isMinimized;
+    private double _baseFramesPerSecond;
 
     public GL? Api { get; private set; }
     public int Width => _window.Size.X;
     public int Height => _window.Size.Y;
+    public string GpuRenderer { get; private set; } = "";
+    public string GpuVendor { get; private set; } = "";
+    public string GpuVersion { get; private set; } = "";
     public IMouse? Mouse { get; private set; }
     public IKeyboard? Keyboard { get; private set; }
     public IWindow NativeWindow => _window;
     public uint DockspaceId { get; private set; }
     public float ContentScale { get; private set; } = 1.0f;
+    public bool VSyncEnabled { get; private set; }
+    public bool IsThrottled => !_isFocused || _isMinimized;
 
     public event Action? Load;
     public event Action<double>? UpdateFrame;
@@ -31,13 +42,14 @@ public sealed class GlWindow : IDisposable
     public event Action<int, int>? Resized;
     public event Action? Closing;
 
-    public GlWindow(string title, int width, int height, bool fullscreen, bool enableImGui = true)
+    public GlWindow(string title, int width, int height, bool fullscreen, bool vsync = true, bool enableImGui = true)
     {
         _enableImGui = enableImGui;
+        VSyncEnabled = vsync;
         var options = WindowOptions.Default;
         options.Title = title;
         options.Size = new Vector2D<int>(width, height);
-        options.VSync = true;
+        options.VSync = vsync;
         options.WindowState = fullscreen ? WindowState.Fullscreen : WindowState.Normal;
 
         _window = Window.Create(options);
@@ -46,6 +58,8 @@ public sealed class GlWindow : IDisposable
         _window.Render += OnRender;
         _window.Resize += OnResize;
         _window.Closing += OnClosing;
+        _window.FocusChanged += OnFocusChanged;
+        _window.StateChanged += OnStateChanged;
     }
 
     private static unsafe float QueryContentScale()
@@ -65,9 +79,62 @@ public sealed class GlWindow : IDisposable
         }
     }
 
+    private static unsafe int QueryPrimaryRefreshRate()
+    {
+        try
+        {
+            var glfw = Silk.NET.GLFW.Glfw.GetApi();
+            var monitor = glfw.GetPrimaryMonitor();
+            if (monitor == null) return 60;
+
+            var mode = glfw.GetVideoMode(monitor);
+            return mode == null || mode->RefreshRate <= 0 ? 60 : mode->RefreshRate;
+        }
+        catch
+        {
+            return 60;
+        }
+    }
+
+    private void OnFocusChanged(bool focused)
+    {
+        _isFocused = focused;
+        ApplyFrameRateState();
+    }
+
+    private void OnStateChanged(WindowState state)
+    {
+        _isMinimized = state == WindowState.Minimized;
+        ApplyFrameRateState();
+    }
+
+    private void ApplyFrameRateState()
+    {
+        double target = IsThrottled ? ThrottledFramesPerSecond : _baseFramesPerSecond;
+        _window.FramesPerSecond = target;
+        _window.UpdatesPerSecond = target;
+    }
+
+    public void SetVSync(bool enabled)
+    {
+        VSyncEnabled = enabled;
+        _window.VSync = enabled;
+        _baseFramesPerSecond = enabled ? 0.0 : QueryPrimaryRefreshRate();
+        ApplyFrameRateState();
+    }
+
     private void OnLoad()
     {
         Api = _window.CreateOpenGL();
+
+        GpuRenderer = Api.GetStringS(StringName.Renderer);
+        GpuVendor = Api.GetStringS(StringName.Vendor);
+        GpuVersion = Api.GetStringS(StringName.Version);
+        AppLog.Info($"GPU: {GpuRenderer} ({GpuVendor}), GL {GpuVersion}");
+
+        _baseFramesPerSecond = VSyncEnabled ? 0.0 : QueryPrimaryRefreshRate();
+        ApplyFrameRateState();
+
         Gui.NativeFileDialog.OwnerHwnd = _window.Native?.Win32?.Hwnd ?? 0;
         _inputContext = _window.CreateInput();
         Mouse = _inputContext.Mice.Count > 0 ? _inputContext.Mice[0] : null;

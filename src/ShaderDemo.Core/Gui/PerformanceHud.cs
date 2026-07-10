@@ -2,6 +2,7 @@
 using System.Numerics;
 using ImGuiNET;
 using ShaderDemo.Core.Rendering;
+using ShaderDemo.Core.Settings;
 
 namespace ShaderDemo.Core.Gui;
 
@@ -15,7 +16,7 @@ public static class PerformanceHud
         manager.Profiler.Enabled = Visible;
     }
 
-    public static void Draw(ShaderManager manager)
+    public static void Draw(ShaderManager manager, AppSettings settings)
     {
         if (!Visible) return;
 
@@ -34,6 +35,9 @@ public static class PerformanceHud
             float frameTimeMs = fps > 0 ? 1000.0f / fps : 0.0f;
 
             Theme.Heading("Performance (F1 to hide)", Theme.Info);
+
+            string gpuLabel = string.IsNullOrEmpty(settings.DetectedGpuName) ? "(not yet detected)" : settings.DetectedGpuName;
+            ImGui.TextColored(Theme.TextMuted, $"Detected: {settings.QualityTier} ({gpuLabel})");
 
             bool pushedMono = Theme.PushFontIf(Theme.FontMono);
             ImGui.Text($"FPS: {fps:F1}   Frame: {frameTimeMs:F2} ms");

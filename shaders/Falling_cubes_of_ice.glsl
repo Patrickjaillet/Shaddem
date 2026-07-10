@@ -13,8 +13,9 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 rd = normalize(uv.x * uu + uv.y * vv + 1.5 * ww);
     vec4 scene = vec4(0.0);
     float t = 0.0;
-    
-    for(int i = 0; i < 128; i++) {
+    int RAY_STEPS = int(max(32.0, floor(128.0 * customQualityScale)));
+
+    for(int i = 0; i < RAY_STEPS; i++) {
         vec3 p = ro + rd * t;
         float dPlane = p.y;
         float dIce = 15.0;
@@ -279,7 +280,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         {
             float st = 0.02;
             vec3 sro = p + n * 0.01;
-            for(int i = 0; i < 32; i++) {
+            int SHADOW_RAY_STEPS = int(max(8.0, floor(32.0 * customQualityScale)));
+            for(int i = 0; i < SHADOW_RAY_STEPS; i++) {
                 vec3 sp = sro + l * st;
                 float dPlane = sp.y; float dIce = 15.0;
                 for(float j = 0.0; j < 4.0; j++) {

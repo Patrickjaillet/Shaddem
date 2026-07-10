@@ -1,5 +1,5 @@
 #define MyAppName "ShaderDemo"
-#define MyAppVersion "0.1.0"
+#define MyAppVersion "1.0.0"
 #define MyAppPublisher "Patrick JAILLET"
 #define MyAppExeName "ShaderDemo.exe"
 #define MyPublishDir "..\publish"
@@ -33,6 +33,8 @@ Name: "desktopicon"; Description: "Create a &desktop icon"; GroupDescription: "A
 Source: "{#MyPublishDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#MyPublishDir}\*.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#MyPublishDir}\shaders\*"; DestDir: "{app}\shaders"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#MyPublishDir}\images\*"; DestDir: "{app}\images"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#MyPublishDir}\music\*"; DestDir: "{app}\music"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
@@ -44,6 +46,8 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: no
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\shaders"
+Type: filesandordirs; Name: "{app}\images"
+Type: filesandordirs; Name: "{app}\music"
 Type: files; Name: "{app}\settings.json"
 Type: files; Name: "{app}\layers.json"
 Type: files; Name: "{app}\timeline.json"

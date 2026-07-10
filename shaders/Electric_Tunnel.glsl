@@ -6,9 +6,9 @@
 #define R(a) mat2(cos(a),sin(a),-sin(a),cos(a))
 #define N(p) dot(sin(p),cos((p).yzx))
 #define H(p) fract(sin(dot(p,vec2(12.9,78.2)))*4e4)
-#define SAMPLES 4.0
-#define VOLUMETRIC_STEPS 80.0
 #define EXPOSURE 1.8
+float SAMPLES = max(1.0, floor(4.0 * customQualityScale));
+float VOLUMETRIC_STEPS = max(20.0, floor(80.0 * customQualityScale));
 
 float getStars(vec3 p) {
     vec3 id = floor(p * 20.0);

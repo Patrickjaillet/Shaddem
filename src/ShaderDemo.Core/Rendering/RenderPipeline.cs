@@ -73,7 +73,7 @@ public sealed class RenderPipeline : IDisposable
         ComposeB = Framebuffer.Create(_gl, internalWidth, internalHeight, linearFilter: true);
     }
 
-    public void RenderShaderPass(ShaderProgram? program, EffectParams effects, float time, Vector2 mouse, AudioUniforms audio, Texture channel0, Framebuffer? target)
+    public void RenderShaderPass(ShaderProgram? program, EffectParams effects, float time, Vector2 mouse, AudioUniforms audio, Texture channel0, Framebuffer? target, float qualityScale = 1.0f)
     {
         if (target != null)
         {
@@ -110,6 +110,7 @@ public sealed class RenderPipeline : IDisposable
         program.SetUniform("customScale", audio.Scale);
         program.SetUniform("customAudioKick", audio.Kick);
         program.SetUniform("customRotationSpeed", audio.RotationSpeed);
+        program.SetUniform("customQualityScale", qualityScale);
 
         _quad.Draw();
     }

@@ -18,6 +18,7 @@ public sealed class LiveAudioAnalyzer : IDisposable
 
     private readonly object _lock = new();
     private readonly float[] _ring = new float[WindowSize];
+    private readonly Complex[] _fftBuffer = new Complex[WindowSize];
     private WaveInEvent? _waveIn;
     private int _ringPos;
     private int _ringFilled;
@@ -90,7 +91,7 @@ public sealed class LiveAudioAnalyzer : IDisposable
 
     private void AnalyzeWindow()
     {
-        var data = new Complex[WindowSize];
+        Complex[] data = _fftBuffer;
         for (int k = 0; k < WindowSize; k++)
         {
             int idx = (_ringPos + k) % WindowSize;

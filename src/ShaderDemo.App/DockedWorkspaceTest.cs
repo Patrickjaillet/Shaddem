@@ -69,7 +69,7 @@ public static class DockedWorkspaceTest
                     Console.WriteLine($"[docked-workspace-test] RequestOpenPanel('{target}') routed with no exception");
                 }
 
-                EffectsPanel.Draw(engine, settings, "test_dock_settings.json", "test_dock_layers.json", timeline, "test_dock_timeline.json", "test_dock_presets.json", previewWindow, shaderDirectory, window.DockspaceId);
+                EffectsPanel.Draw(engine, settings, "test_dock_settings.json", "test_dock_layers.json", timeline, "test_dock_timeline.json", "test_dock_presets.json", previewWindow, shaderDirectory, window.DockspaceId, window);
 
                 if (frame == 40 && engine.LastComposedFrame != null)
                 {
